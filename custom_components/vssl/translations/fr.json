@@ -1,0 +1,26 @@
+{
+  "title": "VSSL MS.1 (expérimental)",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ajouter un VSSL MS.1 pour validation terrain",
+        "description": "Le support repose sur des fixtures synthétiques et doit encore être confirmé sur un vrai MS.1. La configuration reste disponible si la première sonde échoue afin de permettre le téléchargement des diagnostics.",
+        "data": {
+          "host": "Adresse IPv4",
+          "name": "Nom",
+          "scan_interval": "Intervalle d’actualisation (secondes)"
+        }
+      }
+    },
+    "error": {"invalid_host": "Saisissez une adresse IPv4 unicast valide"},
+    "abort": {"already_configured": "Cette adresse est déjà configurée"}
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options VSSL",
+        "data": {"scan_interval": "Intervalle d’actualisation (secondes)"}
+      }
+    }
+  }
+}

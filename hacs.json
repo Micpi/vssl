@@ -1,0 +1,9 @@
+{
+  "name": "VSSL MS.1 (Experimental)",
+  "render_readme": true,
+  "domains": [
+    "binary_sensor",
+    "sensor"
+  ],
+  "version": "0.1.0"
+}
