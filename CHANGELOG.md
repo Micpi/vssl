@@ -1,53 +1,17 @@
-# Changelog
+# Historique
 
-## v0.1.0 - 2026-09-04
+## 1.0.0
 
-- Date: 2026-09-04
-- Component: integration / VSSL
-- Repository: Micpi/vssl
-- Previous tag: none
-- HACS version: v0.1.0
+- Remplace le prototype de diagnostic UDP/TCP par le contrôle HTTP StreamSDK
+  vérifié sur un VSSL MS.1 réel.
+- Ajoute volume, sourdine, pause/reprise et métadonnées dans une entité media_player.
+- Ajoute la découverte mDNS, la configuration en français et en anglais,
+  une identité matérielle stable et la migration des entrées 0.1.
+- Respecte le volume fixe et gère les interruptions de communication.
+- Ajoute des tests de protocole, un test dans Home Assistant 2026.9.1 et les
+  validations GitHub Actions / HACS / Hassfest.
 
-## Summary
+## 0.1.0
 
-- Initial experimental VSSL MS.1 field toolkit
-- Build: skipped (not a card)
-- Version metadata updated: hacs.json, manifest.json
-
-## Detailed changelog
-
-### Documentation
-
-- `CHANGELOG.md` - added (+9 -0, working tree)
-- `README.md` - added (+39 -0, working tree)
-
-### HACS and metadata
-
-- `hacs.json` - added (+9 -0, working tree)
-
-### Integration source
-
-- `custom_components/` - added (stat unavailable, working tree)
-
-### Other
-
-- `.gitignore` - added (+7 -0, working tree)
-- `captures/` - added (stat unavailable, working tree)
-- `DEBUG_SESSION.md` - added (+169 -0, working tree)
-- `pytest.ini` - added (+6 -0, working tree)
-- `requirements-dev.txt` - added (+3 -0, working tree)
-- `tools/` - added (stat unavailable, working tree)
-
-### Tests
-
-- `tests/` - added (stat unavailable, working tree)
-
-## Commits since previous tag
-
-- No committed changes since previous tag before this release commit.
-
-## HACS update notes
-
-- HACS should detect this release from tag `v0.1.0`.
-- If the update does not appear immediately, refresh HACS cache or wait for the next HACS refresh cycle.
-
+Prototype de diagnostic réseau, sans contrôle de lecture ni de volume.
+La compatibilité matérielle n’était pas confirmée.

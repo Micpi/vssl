@@ -1,39 +1,96 @@
-# VSSL MS.1 (Experimental)
+# VSSL MX pour Home Assistant
 
-Custom Home Assistant integration and field-debug kit for the VSSL MS.1. Version
-0.1 is intentionally non-destructive: it discovers the device over the documented
-UDP ports and exposes reachability/support sensors plus downloadable diagnostics.
-It does not send playback, volume, rename, reset, update or proprietary query frames.
+Contrôle local du **VSSL MS.1** dans Home Assistant, installable avec HACS.
+Cette version remplace l’ancienne intégration expérimentale de diagnostic.
 
-Real MS.1 compatibility is not yet confirmed. Current tests use a synthetic fixture;
-follow [DEBUG_SESSION.md](DEBUG_SESSION.md) to convert one real-network session into
-sanitized reproducible tests.
+[![Ouvrir le dépôt dans HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Micpi&repository=vssl&category=integration)
 
-## Installation
+## Fonctions
 
-Copy `custom_components/vssl` to Home Assistant's `custom_components/`, restart,
-then add **VSSL MS.1 (Experimental)** from Settings > Devices & services. HACS users
-can add this repository as a custom Integration repository.
+- Volume de 0 à 100 %, pas de 1 % et sourdine.
+- Pause et reprise du flux actif lorsque la source les autorise.
+- État de lecture, titre, artiste, album, pochette et source.
+- Détection automatique AirPlay/mDNS ou ajout par adresse IP.
+- Retour d’état toutes les 5 secondes et après chaque commande.
+- Respect du mode de volume fixe réglé dans l’application VSSL.
+- Identifiant matériel stable, reconnexion et migration de la version 0.1.
 
-The setup accepts a known IPv4 address even when the initial probe fails. This is
-deliberate so the diagnostic entry and its in-memory counters remain available in
-the field. Use the standard `homeassistant.update_entity` action on the Discovery
-status sensor for an immediate refresh.
+L’intégration utilise l’API HTTP StreamSDK du lecteur, sur le port 80.
+Aucun agent VSSL, cloud ou compte supplémentaire n’est nécessaire.
 
-## Development
+## Installation HACS
 
-```bash
-python3 tools/validate_fixture.py tests/fixtures/synthetic_capture.json
-python3 -m pytest
+Home Assistant **2026.9 ou plus récent** est requis ; les tests ont été exécutés
+avec Home Assistant **2026.9.1**.
+
+1. Ouvrir **HACS → ⋮ → Dépôts personnalisés**.
+2. Ajouter `https://github.com/Micpi/vssl`, catégorie **Intégration**.
+3. Télécharger **VSSL MX** puis redémarrer Home Assistant.
+4. Dans **Paramètres → Appareils et services**, configurer le VSSL découvert,
+   ou **Ajouter une intégration → VSSL MX** et saisir son adresse IP.
+
+Si ce dépôt est déjà installé via HACS, télécharger la mise à jour puis redémarrer.
+L’adresse configurée dans la version expérimentale 0.1 est conservée et vérifiée.
+Les anciennes entités de diagnostic ne sont plus fournies ; leurs entrées
+indisponibles peuvent être supprimées du registre des entités.
+
+Ce dépôt est disponible comme **dépôt personnalisé HACS**. Il n’est pas encore
+référencé dans le catalogue HACS par défaut.
+
+### Installation manuelle
+
+Copier le dossier `custom_components/vssl` dans le dossier `custom_components`
+de votre configuration Home Assistant, puis redémarrer. En remplaçant la 0.1,
+remplacer le dossier complet pour éliminer ses anciens modules de diagnostic.
+
+## Compatibilité et limites
+
+| Appareil | Validation |
+| --- | --- |
+| MS.1, firmware `0.0.136.0x114a983` | Testé sur appareil réel |
+| MA.1 | Reconnu par le code, pas encore testé sur matériel |
+| A.1 / A.3 / A.6, série X, série SX | Non pris en charge |
+
+Pour démarrer une musique ou une radio, utiliser Music Assistant, Google Cast,
+AirPlay ou l’application VSSL. Cette version pilote le flux déjà actif ; elle
+n’expose pas `play_media`, la sélection d’entrée, le groupement, l’égaliseur,
+l’allumage/extinction ou le saut de piste.
+
+La commande StreamSDK `pause` est une bascule. L’intégration relit l’état avant
+de l’envoyer pour qu’une seconde demande de pause ne relance pas la lecture.
+Une demande de reprise à l’arrêt renvoie une erreur explicite plutôt que de
+tenter de lancer un contenu inconnu.
+
+Réserver l’adresse IP dans le routeur est conseillé. L’accès HTTP local au VSSL
+doit être possible depuis Home Assistant. La découverte mDNS nécessite sa
+diffusion entre les réseaux ; l’ajout manuel fonctionne sans cette découverte.
+
+## Exemple d’automatisation
+
+Adapter l’identifiant de l’entité créé chez vous :
+
+```yaml
+actions:
+  - action: media_player.volume_set
+    target:
+      entity_id: media_player.piece_a_vivre
+    data:
+      volume_level: 0.25
 ```
 
-Protocol facts used here: VSSL documents multicast zone discovery on UDP 1800/1900
-and application communication on TCP 7777/50002. The exact MS.1 response shape is
-still an evidence gap, so unknown headers are retained by the parser and surfaced by
-the fixture validator rather than assigned guessed semantics.
+## Tests
 
-Primary references:
+Le [rapport de validation](VALIDATION.md) détaille les vérifications réelles et
+leurs limites. Les tests automatisés du protocole n’accèdent pas au réseau local :
 
-- [VSSL Networking Support](https://vsslknowledgebase.tawk.help/article/vssl-networking-support)
-- [Official MS.1 product page](https://www.vssl.com/vssl-products/ms1)
-- [Official MS.1 quick-start guide](https://www.vssl.com/qsg/ms-1-quick-start-guide)
+```shell
+python -m pip install aiohttp
+python -m unittest discover -s tests -v
+```
+
+`tools/ha_smoke.py` teste le chargement et la migration dans un conteneur Home
+Assistant avec un appareil réel ; l’option `--write` teste aussi volume/sourdine
+et restaure leurs valeurs initiales. Ne pas l’exécuter dans l’instance de production.
+
+Intégration communautaire indépendante, non affiliée à VSSL. L’icône fournie est
+un dessin original de haut-parleur et non le logo de la marque.

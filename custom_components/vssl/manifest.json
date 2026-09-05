@@ -1,12 +1,30 @@
 {
   "domain": "vssl",
-  "name": "VSSL MS.1 (Experimental)",
-  "codeowners": [],
+  "name": "VSSL MX",
+  "codeowners": [
+    "@Micpi"
+  ],
   "config_flow": true,
-  "dependencies": [],
   "documentation": "https://github.com/Micpi/vssl",
   "integration_type": "device",
   "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Micpi/vssl/issues",
   "requirements": [],
-  "version": "0.1.0"
+  "version": "1.0.0",
+  "zeroconf": [
+    {
+      "type": "_airplay._tcp.local.",
+      "properties": {
+        "manufacturer": "vssl*",
+        "model": "ms1"
+      }
+    },
+    {
+      "type": "_airplay._tcp.local.",
+      "properties": {
+        "manufacturer": "vssl*",
+        "model": "ma1"
+      }
+    }
+  ]
 }

@@ -1,40 +1,49 @@
-"""Diagnostic-first VSSL MS.1 integration."""
+"""Home Assistant integration for VSSL MX."""
 
-from __future__ import annotations
+from homeassistant.const import CONF_HOST, Platform
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_HOST
-from homeassistant.core import HomeAssistant
+from .api import VsslClient, VsslError
+from .coordinator import VsslCoordinator
 
-from .api import VsslDiscoveryClient
-from .const import CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, PLATFORMS
-from .coordinator import VsslDataUpdateCoordinator
-from .entity import VsslRuntimeData
+PLATFORMS = [Platform.MEDIA_PLAYER]
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up VSSL and keep diagnostics available after an initial failure."""
-    client = VsslDiscoveryClient(entry.data[CONF_HOST])
-    coordinator = VsslDataUpdateCoordinator(
-        hass,
-        client,
-        entry.options.get(
-            CONF_SCAN_INTERVAL,
-            entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-        ),
-    )
-    entry.runtime_data = VsslRuntimeData(coordinator=coordinator)
-    await coordinator.async_refresh()
+async def async_setup_entry(hass, entry):
+    client = VsslClient(async_get_clientsession(hass), entry.data[CONF_HOST])
+    try:
+        identity = await client.identity()
+        if entry.data.get("legacy_identity"):
+            hass.config_entries.async_update_entry(
+                entry,
+                unique_id=identity["id"],
+                title=identity["name"],
+                data={CONF_HOST: entry.data[CONF_HOST]},
+            )
+        elif identity["id"] != entry.unique_id:
+            raise VsslError("The IP address now belongs to a different VSSL")
+    except VsslError as err:
+        raise ConfigEntryNotReady(str(err)) from err
+    coordinator = VsslCoordinator(hass, entry, client, identity)
+    await coordinator.async_config_entry_first_refresh()
+    entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a VSSL config entry."""
+async def async_unload_entry(hass, entry):
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
 
-async def _async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload after options change."""
-    await hass.config_entries.async_reload(entry.entry_id)
+async def async_migrate_entry(hass, entry):
+    """Preserve the host configured by the experimental 0.1 integration."""
+    if entry.version > 2:
+        return False
+    if entry.version == 1:
+        hass.config_entries.async_update_entry(
+            entry,
+            version=2,
+            data={CONF_HOST: entry.data[CONF_HOST], "legacy_identity": True},
+        )
+    return True

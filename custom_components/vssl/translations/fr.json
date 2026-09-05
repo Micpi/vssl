@@ -1,26 +1,16 @@
 {
-  "title": "VSSL MS.1 (expérimental)",
+  "title": "VSSL MX",
   "config": {
+    "flow_title": "{name}",
     "step": {
-      "user": {
-        "title": "Ajouter un VSSL MS.1 pour validation terrain",
-        "description": "Le support repose sur des fixtures synthétiques et doit encore être confirmé sur un vrai MS.1. La configuration reste disponible si la première sonde échoue afin de permettre le téléchargement des diagnostics.",
-        "data": {
-          "host": "Adresse IPv4",
-          "name": "Nom",
-          "scan_interval": "Intervalle d’actualisation (secondes)"
-        }
-      }
+      "user": {"title": "Connecter un VSSL MS.1 / MA.1", "description": "Saisissez l’adresse IP locale ou le nom d’hôte du VSSL MX.", "data": {"host": "Adresse IP ou nom d’hôte"}},
+      "confirm": {"title": "VSSL détecté", "description": "Ajouter {name} ({host}) ?"}
     },
-    "error": {"invalid_host": "Saisissez une adresse IPv4 unicast valide"},
-    "abort": {"already_configured": "Cette adresse est déjà configurée"}
-  },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Options VSSL",
-        "data": {"scan_interval": "Intervalle d’actualisation (secondes)"}
-      }
-    }
+    "error": {
+      "cannot_connect": "Impossible de communiquer avec l’API locale du VSSL.",
+      "invalid_host": "Saisissez une adresse IP ou un nom d’hôte, sans http:// ni chemin.",
+      "unsupported_device": "Cette intégration nécessite un VSSL MS.1 ou MA.1 utilisant StreamSDK."
+    },
+    "abort": {"already_configured": "Ce VSSL est déjà configuré. Son adresse a été actualisée si nécessaire.", "cannot_connect": "Impossible de communiquer avec le VSSL détecté."}
   }
 }

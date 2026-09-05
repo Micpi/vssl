@@ -1,7 +1,10 @@
+.venv/
+.upstream-*/
 __pycache__/
 .pytest_cache/
-.coverage
-htmlcov/
-captures/*
-!captures/.gitignore
-!captures/README.md
+.ruff_cache/
+research/
+dist/
+.ha-test/
+tools/discover.py
+tools/probe_controls.py
