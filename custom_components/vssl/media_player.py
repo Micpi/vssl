@@ -11,7 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .api import VsslError
+from .api import VsslError, source_name
 from .const import DOMAIN
 
 
@@ -46,6 +46,8 @@ class VsslMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
     @property
     def supported_features(self):
         features = MediaPlayerEntityFeature.VOLUME_MUTE
+        if self.coordinator.data.get("sources"):
+            features |= MediaPlayerEntityFeature.SELECT_SOURCE
         if not self.coordinator.data["fixed"]:
             features |= (
                 MediaPlayerEntityFeature.VOLUME_SET
@@ -63,6 +65,7 @@ class VsslMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
             "playing": MediaPlayerState.PLAYING,
             "paused": MediaPlayerState.PAUSED,
             "buffering": MediaPlayerState.BUFFERING,
+            "transitioning": MediaPlayerState.BUFFERING,
         }.get(self.player.get("state"), MediaPlayerState.IDLE)
 
     @property
@@ -98,9 +101,23 @@ class VsslMediaPlayer(CoordinatorEntity, MediaPlayerEntity):
 
     @property
     def source(self):
-        return self.metadata.get("serviceName") or self.player.get(
-            "mediaRoles", {}
-        ).get("description")
+        return source_name(self.player)
+
+    @property
+    def source_list(self):
+        sources = self.coordinator.data.get("sources", {})
+        return ["Streaming", *sources] if sources else None
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "streaming_service": self.metadata.get("serviceName")
+            if self.source == "Streaming"
+            else None
+        }
+
+    async def async_select_source(self, source):
+        await self._command(self.coordinator.client.select_source(source))
 
     async def _command(self, action):
         try:

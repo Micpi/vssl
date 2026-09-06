@@ -1,5 +1,17 @@
 # Historique
 
+## 1.1.0
+
+- Ajoute le sélecteur de sources Streaming, HDMI, Optique, Coaxial, AUX et USB.
+- Découvre les entrées et leurs paramètres dans le catalogue StreamSDK du lecteur.
+- Affiche la source réelle à partir des informations du lecteur, même lorsque les
+  métadonnées du morceau précédent sont encore présentes.
+- Conserve le service réseau actif dans l’attribut `streaming_service`.
+- Préserve un flux réseau déjà actif lors de la sélection de Streaming ; ce choix
+  arrête une entrée locale mais ne relance pas une ancienne session Cast/AirPlay.
+- Ajoute 7 tests de protocole et un test des services de sélection dans Home Assistant
+  avec appareil simulé. Activation HDMI confirmée sur le MS.1 réel le 5 septembre.
+
 ## 1.0.0
 
 - Remplace le prototype de diagnostic UDP/TCP par le contrôle HTTP StreamSDK

@@ -16,6 +16,16 @@ jobs:
       - run: pip install aiohttp
       - run: python -m unittest discover -s tests -v
       - run: python -m compileall -q custom_components
+  home-assistant:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: >-
+          docker run --rm
+          -v "$PWD/custom_components:/config/custom_components:ro"
+          -v "$PWD/tools:/work:ro"
+          --entrypoint python ghcr.io/home-assistant/home-assistant:2026.9.1
+          /work/ha_sources_smoke.py
   hassfest:
     runs-on: ubuntu-latest
     steps:

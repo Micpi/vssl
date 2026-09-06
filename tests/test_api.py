@@ -23,12 +23,31 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
             "player:player/data": {"state": "playing", "controls": {"pause": True}},
         }
         self.writes = []
+        self.rows = [
+            [
+                "ui:/hdmiaux_plug",
+                "HDMI in",
+                "audio",
+                {
+                    "resources": [
+                        {"uri": "alsa://aux_plug", "mimeType": "audio/unknown"}
+                    ],
+                    "metaData": {
+                        "playLogicPath": "pipewire:playLogic",
+                        "serviceID": "HDMI",
+                        "live": True,
+                    },
+                },
+            ],
+            ["ui:/googlecastlite", "Google Cast", "container", None],
+        ]
         self.status = 200
         self.malformed = False
         self.application_error = False
         app = web.Application()
         app.router.add_get("/api/getData", self.read)
         app.router.add_post("/api/setData", self.write)
+        app.router.add_get("/api/getRows", self.read_rows)
         self.runner = web.AppRunner(app)
         await self.runner.setup()
         site = web.TCPSite(self.runner, "127.0.0.1", 0)
@@ -56,6 +75,15 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
         data = await request.json()
         self.writes.append(data)
         if data["role"] == "activate":
+            if data["value"].get("control") == "play":
+                self.values["player:player/data"] = {
+                    "state": "playing",
+                    "mediaRoles": data["value"]["mediaRoles"],
+                }
+                return web.json_response(None)
+            if data["value"].get("control") == "stop":
+                self.values["player:player/data"] = {"state": "stopped"}
+                return web.json_response(None)
             current = self.values["player:player/data"]["state"]
             self.values["player:player/data"]["state"] = (
                 "paused" if current == "playing" else "playing"
@@ -63,6 +91,58 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
         else:
             self.values[data["path"]] = data["value"]
         return web.json_response(None)
+
+    async def read_rows(self, request):
+        return web.json_response({"rows": self.rows})
+
+    async def test_source_discovery_filters_nonplayable_services(self):
+        self.assertEqual(list(await self.client.sources()), ["HDMI"])
+
+    async def test_hdmi_uses_device_supplied_media_roles(self):
+        await self.client.select_source("HDMI")
+        self.assertEqual(api.source_name((await self.client.state())["player"]), "HDMI")
+        payload = self.writes[-1]["value"]
+        self.assertEqual(payload["mediaRoles"]["mediaData"], self.rows[0][3])
+        self.assertEqual(payload["type"], "none")
+        await self.client.select_source("HDMI")
+        self.assertEqual(len(self.writes), 1)
+
+    async def test_streaming_releases_local_input(self):
+        await self.client.select_source("HDMI")
+        await self.client.select_source("Streaming")
+        self.assertEqual(self.writes[-1]["value"], {"control": "stop"})
+        self.assertEqual(
+            api.source_name((await self.client.state())["player"]), "Streaming"
+        )
+
+    async def test_streaming_does_not_interrupt_cast(self):
+        self.values["player:player/data"]["mediaRoles"] = {
+            "mediaData": {"metaData": {"serviceID": "googlecast"}}
+        }
+        await self.client.select_source("Streaming")
+        self.assertFalse(self.writes)
+
+    async def test_unknown_or_disabled_source_never_written(self):
+        for source in ["Optique", "ui:/hdmiaux_plug", "Google Cast"]:
+            with self.assertRaises(api.VsslError):
+                await self.client.select_source(source)
+        self.assertFalse(self.writes)
+
+    async def test_malformed_source_rows_ignored(self):
+        self.rows = [
+            None,
+            [],
+            ["bad", "bad", "audio", None],
+            ["bad", "bad", "audio", {}],
+        ]
+        self.assertEqual(await self.client.sources(), {})
+
+    def test_source_uses_media_not_stale_track_metadata(self):
+        player = {
+            "mediaRoles": {"mediaData": {"metaData": {"serviceID": "HDMI"}}},
+            "trackRoles": {"mediaData": {"metaData": {"serviceID": "googlecast"}}},
+        }
+        self.assertEqual(api.source_name(player), "HDMI")
 
     async def test_state_and_volume_roundtrip(self):
         self.assertEqual((await self.client.state())["volume"], 41)

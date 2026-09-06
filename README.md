@@ -8,6 +8,8 @@ Cette version remplace l’ancienne intégration expérimentale de diagnostic.
 ## Fonctions
 
 - Volume de 0 à 100 %, pas de 1 % et sourdine.
+- Sélecteur de sources : **Streaming, HDMI, Optique, Coaxial, AUX et USB**,
+  selon les entrées exposées par l’appareil.
 - Pause et reprise du flux actif lorsque la source les autorise.
 - État de lecture, titre, artiste, album, pochette et source.
 - Détection automatique AirPlay/mDNS ou ajout par adresse IP.
@@ -53,13 +55,37 @@ remplacer le dossier complet pour éliminer ses anciens modules de diagnostic.
 
 Pour démarrer une musique ou une radio, utiliser Music Assistant, Google Cast,
 AirPlay ou l’application VSSL. Cette version pilote le flux déjà actif ; elle
-n’expose pas `play_media`, la sélection d’entrée, le groupement, l’égaliseur,
+n’expose pas `play_media`, le groupement, l’égaliseur,
 l’allumage/extinction ou le saut de piste.
 
 La commande StreamSDK `pause` est une bascule. L’intégration relit l’état avant
 de l’envoyer pour qu’une seconde demande de pause ne relance pas la lecture.
 Une demande de reprise à l’arrêt renvoie une erreur explicite plutôt que de
 tenter de lancer un contenu inconnu.
+
+### Sélection de source (depuis la version 1.1)
+
+Le menu **Source** de l’entité et l’action `media_player.select_source` permettent
+de choisir les entrées locales. Leur liste et les paramètres d’activation sont lus
+sur le MS.1, plutôt que reconstruits à partir d’un autre modèle.
+
+**Streaming** arrête l’entrée locale pour permettre une nouvelle diffusion réseau.
+Ce choix ne relance pas la session Cast/AirPlay interrompue : démarrer ou relancer
+la musique depuis Music Assistant ou l’application émettrice. Si un flux réseau
+est déjà actif, sélectionner Streaming le laisse jouer.
+
+Cast, AirPlay et Spotify ne sont pas des entrées locales activables individuellement.
+Le nom du service actif reste accessible dans l’attribut `streaming_service`.
+Bluetooth peut être affiché lorsqu’il est actif, mais sa sélection et l’appairage
+restent à effectuer dans l’application VSSL.
+
+```yaml
+action: media_player.select_source
+target:
+  entity_id: media_player.piece_a_vivre
+data:
+  source: HDMI
+```
 
 Réserver l’adresse IP dans le routeur est conseillé. L’accès HTTP local au VSSL
 doit être possible depuis Home Assistant. La découverte mDNS nécessite sa

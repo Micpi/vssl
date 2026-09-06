@@ -1,4 +1,24 @@
-# Validation de la version 1.0.0
+# Validation
+
+## Version 1.1.0 — 6 septembre 2026
+
+- Le 5 septembre, le catalogue du MS.1 réel a exposé AUX, SPDIF/optique, coaxial,
+  HDMI et USB avec leurs paramètres de lecture StreamSDK.
+- Activation HDMI réelle réussie : réponse acceptée puis état `playing` avec
+  `serviceID: HDMI`. Aucun signal audio HDMI n’a été évalué ; le test confirme le
+  routage et le retour d’état du lecteur.
+- La tentative de restauration d’une ancienne session Cast par ses métadonnées
+  n’a pas repris la musique. Cette stratégie n’est pas utilisée dans l’intégration.
+- 17 tests automatisés du protocole passent, dont sélection, refus des sources
+  absentes, non-interruption d’un flux réseau, et métadonnées de piste obsolètes.
+- Dans Home Assistant 2026.9.1 avec un serveur simulant les réponses du MS.1 :
+  vérification de la liste de six sources et des six appels `select_source`.
+- À la reprise le 6 septembre, le PC était sur un autre réseau : les commandes
+  Optique, Coaxial, AUX, USB et retour Streaming n’ont pas été retestées sur le
+  matériel. Elles suivent le même format de catalogue, ou la commande `stop`
+  pour libérer l’entrée. Le comportement audio de ces entrées reste à confirmer.
+
+## Version 1.0.0
 
 Vérifications réalisées le 5 septembre 2026.
 

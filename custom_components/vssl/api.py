@@ -9,6 +9,31 @@ from typing import Any
 
 import aiohttp
 
+SOURCE_NAMES = {
+    "HDMI": "HDMI",
+    "SPDIFIN": "Optique",
+    "COAXIN": "Coaxial",
+    "AUX": "AUX",
+    "Storage": "USB",
+}
+
+
+def source_id(player: dict) -> str:
+    """Use media roles: track metadata can still refer to the previous source."""
+    return (
+        player.get("mediaRoles", {})
+        .get("mediaData", {})
+        .get("metaData", {})
+        .get("serviceID", "")
+    )
+
+
+def source_name(player: dict) -> str:
+    service = source_id(player)
+    return SOURCE_NAMES.get(
+        service, "Bluetooth" if service.lower() == "bluetooth" else "Streaming"
+    )
+
 
 class VsslError(Exception):
     """Device communication or protocol error."""
@@ -121,7 +146,69 @@ class VsslClient:
             or type(fixed) is not bool
         ):
             raise VsslError("Invalid player state")
-        return {"volume": volume, "muted": muted, "player": player, "fixed": fixed}
+        try:
+            sources = await self.sources()
+        except VsslError:
+            # Older firmware may not expose the UI catalogue. Keep basic controls.
+            sources = {}
+        return {
+            "volume": volume,
+            "muted": muted,
+            "player": player,
+            "fixed": fixed,
+            "sources": sources,
+        }
+
+    async def sources(self) -> dict[str, dict]:
+        """Discover playable local inputs, preserving the device's media roles."""
+        roles = ["path", "title", "type", "mediaData"]
+        data = await self._request(
+            "GET",
+            "getRows",
+            params={"path": "ui:", "roles": ",".join(roles), "from": 0, "to": 100},
+        )
+        if not isinstance(data, dict) or not isinstance(data.get("rows"), list):
+            raise VsslError("Invalid source catalogue")
+        sources = {}
+        for row in data["rows"]:
+            if not isinstance(row, list) or len(row) != len(roles):
+                continue
+            item = dict(zip(roles, row))
+            media = item.get("mediaData")
+            if (
+                item.get("type") != "audio"
+                or not isinstance(item.get("path"), str)
+                or not isinstance(media, dict)
+            ):
+                continue
+            service = media.get("metaData", {}).get("serviceID")
+            if service in SOURCE_NAMES and media.get("resources"):
+                sources[SOURCE_NAMES[service]] = item
+        return sources
+
+    async def select_source(self, source: str) -> None:
+        async with self.command_lock:
+            player = await self.get("player:player/data")
+            if source == "Streaming":
+                # Do not restart a sender-owned Cast/AirPlay session. Release the
+                # physical input and let a sender initiate the next network stream.
+                if source_name(player) == "Streaming":
+                    return
+                await self.set("player:player/control", {"control": "stop"}, "activate")
+                return
+            sources = await self.sources()
+            if source not in sources:
+                raise VsslError(f"Source unavailable: {source}")
+            if source_name(player) == source and player.get("state") in {
+                "playing",
+                "transitioning",
+            }:
+                return
+            await self.set(
+                "player:player/control",
+                {"control": "play", "type": "none", "mediaRoles": sources[source]},
+                "activate",
+            )
 
     async def volume(self, value: int) -> None:
         if type(value) is not int or not 0 <= value <= 100:
